@@ -258,6 +258,46 @@
     transition: top 0.3s, left 0.3s;
   }
 
+  /* ---------- Action log (between table and hero zone) ---------- */
+  .action-log {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(199, 154, 58, 0.25);
+    border-radius: 8px;
+    padding: 9px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #ddd;
+    text-align: center;
+    line-height: 1.45;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .action-log .fold-name { color: #888; }
+  .action-log .raise-name { color: #e25c5c; font-weight: 700; }
+  .action-log .your-turn { color: #c79a3a; font-weight: 700; }
+
+  /* ---------- Seat fold/raise indicator ---------- */
+  .seat-status {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+  .seat-status.fold {
+    background: #3a3a3a;
+    color: #aaa;
+  }
+  .seat-status.raise {
+    background: linear-gradient(180deg, #e25c5c 0%, #8d1f1f 100%);
+    color: #fff;
+  }
+
   /* ---------- Hero zone (under table) ---------- */
   .hero-zone {
     background: rgba(0,0,0,0.5);
@@ -589,6 +629,8 @@
       </div>
     </div>
   </div>
+
+  <div class="action-log" id="action-log"></div>
 
   <div class="hero-zone">
     <div class="hero-cards-big" id="hero-cards"></div>
@@ -1082,6 +1124,12 @@ const SEAT_POSITIONS = [
 ];
 
 function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseAmount) {
+  let statusHtml = '';
+  if (isFolded) {
+    statusHtml = '<div class="seat-status fold">FOLD</div>';
+  } else if (hasRaised) {
+    statusHtml = '<div class="seat-status raise">RAISE ' + raiseAmount + '</div>';
+  }
   return ''
     + '<div class="seat-cards-row">'
     +   (isHero ? '' : '<div class="seat-card-mini"></div><div class="seat-card-mini"></div>')
@@ -1090,7 +1138,37 @@ function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseA
     +   '<div class="seat-pos">' + positionLabel + '</div>'
     +   '<div class="seat-stack">' + stack.toLocaleString() + '</div>'
     + '</div>'
-    + (hasRaised ? '<div class="seat-chip raised" style="top: -8px; right: -8px;">' + raiseAmount + '</div>' : '');
+    + (hasRaised ? '<div class="seat-chip raised" style="top: -8px; right: -8px;">' + raiseAmount + '</div>' : '')
+    + statusHtml;
+}
+
+// Build a narrative description of the action that's happened so far
+function buildActionNarration(q) {
+  const parts = [];
+  if (q.raiser) {
+    const raiserIdx = ACTION_ORDER.indexOf(q.raiser);
+    const beforeRaiser = q.folded.filter(p => ACTION_ORDER.indexOf(p) < raiserIdx);
+    const afterRaiser  = q.folded.filter(p => ACTION_ORDER.indexOf(p) > raiserIdx);
+    if (beforeRaiser.length === raiserIdx && raiserIdx > 0) {
+      parts.push('Folded to <span class="raise-name">' + POSITION_NAMES[q.raiser] + '</span>');
+    } else if (beforeRaiser.length > 0) {
+      parts.push('<span class="fold-name">' + beforeRaiser.map(p => POSITION_NAMES[p]).join(', ') + '</span> fold' + (beforeRaiser.length === 1 ? 's' : ''));
+    }
+    parts.push('<span class="raise-name">' + POSITION_NAMES[q.raiser] + '</span> raises to <strong>' + q.raiseAmount + '</strong>');
+    if (afterRaiser.length > 0) {
+      parts.push('<span class="fold-name">' + afterRaiser.map(p => POSITION_NAMES[p]).join(', ') + '</span> fold' + (afterRaiser.length === 1 ? 's' : ''));
+    }
+    parts.push('<span class="your-turn">Your action.</span>');
+  } else {
+    // No raiser - it's been folded around to you (or you're first)
+    if (q.folded.length === 0) {
+      parts.push("<span class=\"your-turn\">You're first to act.</span>");
+    } else {
+      parts.push('Folded around to you');
+      parts.push('<span class="your-turn">Your action.</span>');
+    }
+  }
+  return parts.join('. ') + '.';
 }
 
 function placeSeats(question) {
@@ -1184,6 +1262,9 @@ function loadQuestion() {
 
   // Place seats
   placeSeats(q);
+
+  // Action narration
+  document.getElementById('action-log').innerHTML = buildActionNarration(q);
 
   // Hero info & cards
   const heroStack = q.heroStack || 10000;
