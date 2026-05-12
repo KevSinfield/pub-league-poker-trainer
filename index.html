@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pub League Poker Trainer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.04) 0%, transparent 50%),
+      linear-gradient(135deg, #0a1a14 0%, #050d09 100%);
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .app {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 12px 12px 100px;
+  }
+
+  /* ---------- Top bar ---------- */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(199, 154, 58, 0.25);
+    border-radius: 10px;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #c79a3a;
+  }
+  .stats {
+    display: flex;
+    gap: 14px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 36px;
+  }
+  .stat .val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #c79a3a;
+    line-height: 1.1;
+  }
+  .stat .lbl {
+    font-size: 9px;
+    text-transform: uppercase;
+    opacity: 0.65;
+    letter-spacing: 0.4px;
+    margin-top: 1px;
+  }
+
+  /* ---------- Poker table ---------- */
+  .table-zone {
+    position: relative;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  .table-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: #1a0808;
+    border-radius: 50% / 50%;
+    padding: 18px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6), inset 0 0 0 3px #3a1a10;
+  }
+  .table-felt {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50% / 50%;
+    background:
+      radial-gradient(ellipse at center, #1d6a47 0%, #0d3a26 60%, #082316 100%);
+    box-shadow:
+      inset 0 0 0 2px rgba(199, 154, 58, 0.5),
+      inset 0 0 18px rgba(0,0,0,0.5),
+      inset 0 0 60px rgba(0,0,0,0.3);
+  }
+
+  .table-felt::after {
+    /* subtle inner decorative ring */
+    content: "";
+    position: absolute;
+    inset: 30px;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 50% / 50%;
+    pointer-events: none;
+  }
+
+  /* ---------- Center: pot, community, scenario tag ---------- */
+  .table-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 80%;
+    max-width: 320px;
+    pointer-events: none;
+  }
+  .scenario-tag {
+    display: inline-block;
+    background: rgba(0,0,0,0.6);
+    color: #c79a3a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(199, 154, 58, 0.4);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .community-cards-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+  .card-back-mini {
+    width: 24px;
+    height: 34px;
+    border-radius: 3px;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.06), rgba(255,255,255,0.06) 3px, transparent 3px, transparent 6px),
+      linear-gradient(135deg, #6b1818 0%, #3a0a0a 100%);
+    border: 1px solid rgba(255,255,255,0.15);
+    opacity: 0.6;
+  }
+  .pot-info {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 5px 14px;
+    display: inline-block;
+  }
+  .pot-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .blinds-info {
+    font-size: 10px;
+    color: #c79a3a;
+    margin-top: 1px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---------- Seats ---------- */
+  .seat {
+    position: absolute;
+    width: 84px;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    transition: transform 0.18s;
+  }
+
+  .seat.folded { opacity: 0.32; }
+
+  .seat-cards-row {
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+    height: 28px;
+    align-items: center;
+  }
+  .seat-card-mini {
+    width: 18px;
+    height: 26px;
+    border-radius: 2px;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.07), rgba(255,255,255,0.07) 2px, transparent 2px, transparent 4px),
+      linear-gradient(135deg, #6b1818 0%, #3a0a0a 100%);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .seat.folded .seat-card-mini { background: #222; border-color: #444; }
+
+  .seat-info {
+    background: rgba(0,0,0,0.75);
+    border-radius: 6px;
+    padding: 3px 6px;
+    margin-top: 3px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .seat-pos {
+    color: #c79a3a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+  .seat-stack {
+    color: #fff;
+    font-size: 10px;
+    font-weight: 500;
+    margin-top: 1px;
+  }
+
+  .seat.hero .seat-info {
+    background: linear-gradient(180deg, #c79a3a 0%, #8d6c1f 100%);
+    border-color: #fff;
+    box-shadow: 0 0 12px rgba(199, 154, 58, 0.6);
+  }
+  .seat.hero .seat-pos { color: #1a3d2a; }
+  .seat.hero .seat-stack { color: #fff; }
+
+  .seat-chip {
+    position: absolute;
+    background: linear-gradient(180deg, #d4a847 0%, #8d6c1f 100%);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a1a1a;
+    font-size: 9px;
+    font-weight: 800;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  .seat-chip.raised {
+    background: linear-gradient(180deg, #e25c5c 0%, #8d1f1f 100%);
+    color: #fff;
+  }
+
+  .dealer-btn {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    border: 2px solid #1a1a1a;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a31f1f;
+    font-size: 11px;
+    font-weight: 800;
+    z-index: 5;
+    transition: top 0.3s, left 0.3s;
+  }
+
+  /* ---------- Hero zone (under table) ---------- */
+  .hero-zone {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(199, 154, 58, 0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .hero-cards-big {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .card-big {
+    width: 56px;
+    height: 80px;
+    background: linear-gradient(180deg, #fff 0%, #f3efe6 100%);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.2);
+  }
+  .card-big.red { color: #c00; }
+  .card-big.black { color: #111; }
+  .card-big .rank { font-size: 22px; line-height: 1; }
+  .card-big .suit { font-size: 28px; line-height: 1; margin-top: 2px; }
+  .card-big .corner-tl,
+  .card-big .corner-br {
+    position: absolute;
+    font-size: 9px;
+    line-height: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .card-big .corner-tl { top: 3px; left: 4px; }
+  .card-big .corner-br { bottom: 3px; right: 4px; transform: rotate(180deg); }
+
+  .hero-meta {
+    flex: 1;
+  }
+  .hero-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #c79a3a;
+    letter-spacing: 0.4px;
+  }
+  .hero-stack-label {
+    font-size: 12px;
+    color: #ddd;
+    margin-top: 2px;
+  }
+
+  /* ---------- Action buttons (PokerStars style) ---------- */
+  .action-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .action-btn {
+    padding: 14px 12px;
+    border: 1px solid rgba(0,0,0,0.4);
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 13px;
+    color: white;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    box-shadow:
+      0 4px 0 rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.3),
+      inset 0 -8px 0 rgba(0,0,0,0.18);
+    transition: transform 0.08s, box-shadow 0.08s;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .action-btn:disabled { cursor: default; }
+  .action-btn:not(:disabled):hover { transform: translateY(-1px); }
+  .action-btn:not(:disabled):active {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+
+  .action-btn.fold {
+    background: linear-gradient(180deg, #b53535 0%, #6e1414 100%);
+  }
+  .action-btn.call {
+    background: linear-gradient(180deg, #3a7eb8 0%, #1a4a78 100%);
+  }
+  .action-btn.raise,
+  .action-btn.reraise {
+    background: linear-gradient(180deg, #e09b29 0%, #966115 100%);
+  }
+  .action-btn.shove {
+    background: linear-gradient(180deg, #8b2828 0%, #4d0e0e 100%);
+  }
+
+  .action-btn.correct {
+    box-shadow:
+      0 0 0 3px #2db04a,
+      0 4px 0 rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .action-btn.wrong {
+    box-shadow:
+      0 0 0 3px #c00,
+      0 4px 0 rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .action-btn.dimmed { opacity: 0.45; }
+
+  /* ---------- Feedback ---------- */
+  .feedback {
+    margin-top: 10px;
+    background: rgba(255,255,255,0.97);
+    color: #222;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    animation: feedbackIn 0.25s ease;
+  }
+  @keyframes feedbackIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .feedback.correct { border-left: 6px solid #2db04a; }
+  .feedback.wrong { border-left: 6px solid #c00; }
+  .feedback-title {
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .feedback.correct .feedback-title { color: #1f7a3a; }
+  .feedback.wrong .feedback-title { color: #a31f1f; }
+  .feedback-text {
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .feedback-text strong { color: #0e3b2e; }
+  .next-btn {
+    margin-top: 12px;
+    width: 100%;
+    background: linear-gradient(180deg, #c79a3a 0%, #8d6c1f 100%);
+    color: white;
+    border: 1px solid rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow:
+      0 3px 0 rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .next-btn:hover { filter: brightness(1.08); }
+  .next-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.3); }
+
+  /* ---------- Floating helpers ---------- */
+  .help-fab, .reset-fab {
+    position: fixed;
+    bottom: 18px;
+    border: 2px solid #c79a3a;
+    background: linear-gradient(180deg, #2a1010 0%, #0d0303 100%);
+    color: #c79a3a;
+    cursor: pointer;
+    z-index: 60;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+  }
+  .help-fab {
+    right: 16px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .reset-fab {
+    left: 16px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .help-fab:hover, .reset-fab:hover { transform: scale(1.05); }
+
+  /* ---------- Modal ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .modal.show { display: flex; }
+  .modal-content {
+    background: linear-gradient(180deg, #fdf7e8 0%, #f3efe6 100%);
+    color: #1a3d2a;
+    border-radius: 12px;
+    padding: 22px;
+    max-width: 600px;
+    width: 100%;
+    margin: 20px 0;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    border: 2px solid #c79a3a;
+  }
+  .modal-content h2 {
+    color: #0e3b2e;
+    margin-bottom: 4px;
+  }
+  .modal-content h3 {
+    color: #0e3b2e;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-size: 15px;
+    border-bottom: 2px solid #c79a3a;
+    padding-bottom: 3px;
+  }
+  .modal-content p {
+    font-size: 13.5px;
+    line-height: 1.5;
+    margin-bottom: 5px;
+  }
+  .ranking-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 3px 12px;
+    margin-top: 4px;
+  }
+  .ranking-grid .rank-num { font-weight: 700; color: #c79a3a; }
+  .ranking-grid > div { padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 12.5px; }
+  .position-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 12.5px; }
+  .position-table td { padding: 5px 6px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .position-table td:first-child { font-weight: 700; color: #0e3b2e; white-space: nowrap; }
+  .modal-close {
+    background: linear-gradient(180deg, #0e3b2e 0%, #08291f 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin-top: 14px;
+    font-weight: 700;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 560px) {
+    .seat { width: 64px; }
+    .seat-pos { font-size: 9px; }
+    .seat-stack { font-size: 9px; }
+    .seat-card-mini { width: 14px; height: 20px; }
+    .card-big { width: 50px; height: 70px; }
+    .card-big .rank { font-size: 20px; }
+    .card-big .suit { font-size: 24px; }
+    .top-bar { flex-direction: column; gap: 6px; align-items: stretch; }
+    .stats { justify-content: space-around; }
+    .title { text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top-bar">
+    <div class="title">POKER TRAINER</div>
+    <div class="stats">
+      <div class="stat"><span class="val" id="score">0</span><span class="lbl">Correct</span></div>
+      <div class="stat"><span class="val" id="streak">0</span><span class="lbl">Streak</span></div>
+      <div class="stat"><span class="val" id="total">0</span><span class="lbl">Played</span></div>
+      <div class="stat"><span class="val" id="accuracy">-</span><span class="lbl">Accuracy</span></div>
+    </div>
+  </header>
+
+  <div class="table-zone">
+    <div class="table-frame">
+      <div class="table-felt" id="table-felt">
+
+        <!-- Center area -->
+        <div class="table-center">
+          <div class="scenario-tag" id="scenario-tag">Loading</div>
+          <div class="community-cards-row">
+            <div class="card-back-mini"></div>
+            <div class="card-back-mini"></div>
+            <div class="card-back-mini"></div>
+            <div class="card-back-mini"></div>
+            <div class="card-back-mini"></div>
+          </div>
+          <div class="pot-info">
+            <div class="pot-amount" id="pot-amount">Pot: 0</div>
+            <div class="blinds-info" id="blinds-info">Blinds 0/0</div>
+          </div>
+        </div>
+
+        <!-- 8 seats positioned absolutely -->
+        <div class="seat" id="seat-0"></div>
+        <div class="seat" id="seat-1"></div>
+        <div class="seat" id="seat-2"></div>
+        <div class="seat" id="seat-3"></div>
+        <div class="seat" id="seat-4"></div>
+        <div class="seat" id="seat-5"></div>
+        <div class="seat" id="seat-6"></div>
+        <div class="seat" id="seat-7"></div>
+
+        <!-- Dealer button moves to wherever BTN seat is -->
+        <div class="dealer-btn" id="dealer-btn">D</div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-zone">
+    <div class="hero-cards-big" id="hero-cards"></div>
+    <div class="hero-meta">
+      <div class="hero-name" id="hero-name">YOU</div>
+      <div class="hero-stack-label" id="hero-stack-label">Stack: -</div>
+    </div>
+  </div>
+
+  <div class="action-bar" id="action-bar"></div>
+  <div id="feedback-area"></div>
+
+</div>
+
+<button class="help-fab" onclick="showHelp()" title="Help / Reference">?</button>
+<button class="reset-fab" onclick="resetStats()" title="Reset score">Reset</button>
+
+<div class="modal" id="help-modal" onclick="if(event.target===this) hideHelp()">
+  <div class="modal-content">
+    <h2>Quick Reference</h2>
+    <p style="opacity:0.7; font-size:11px;">Tap outside this box to close, or Esc.</p>
+
+    <h3>Hand Rankings (best to worst)</h3>
+    <div class="ranking-grid">
+      <div class="rank-num">1</div><div>Royal Flush</div><div>A&#9824; K&#9824; Q&#9824; J&#9824; 10&#9824;</div>
+      <div class="rank-num">2</div><div>Straight Flush</div><div>5 consecutive, same suit</div>
+      <div class="rank-num">3</div><div>Four of a Kind</div><div>4 cards of same rank</div>
+      <div class="rank-num">4</div><div>Full House</div><div>3 of a kind + a pair</div>
+      <div class="rank-num">5</div><div>Flush</div><div>5 same suit, any order</div>
+      <div class="rank-num">6</div><div>Straight</div><div>5 consecutive, mixed suits</div>
+      <div class="rank-num">7</div><div>Three of a Kind</div><div>3 cards of same rank</div>
+      <div class="rank-num">8</div><div>Two Pair</div><div>Two separate pairs</div>
+      <div class="rank-num">9</div><div>One Pair</div><div>2 cards of same rank</div>
+      <div class="rank-num">10</div><div>High Card</div><div>Nothing else - highest card plays</div>
+    </div>
+
+    <h3>Starting Hands by Position</h3>
+    <table class="position-table">
+      <tr><td>UTG</td><td>JJ+, AK, AQ - worst seat, lots of players after you</td></tr>
+      <tr><td>UTG+1</td><td>JJ+, AK, AQ - still very tight, like UTG</td></tr>
+      <tr><td>MP</td><td>99+, AJ+, KQ, AK</td></tr>
+      <tr><td>Hi-jack</td><td>77+, AT+, KJ+, QJ</td></tr>
+      <tr><td>Cut-off</td><td>22+, A8+, K10+, QJ+, suited connectors</td></tr>
+      <tr><td>Button</td><td>Any pair, any ace, K9+, two cards 10+, suited connectors</td></tr>
+      <tr><td>Small Blind</td><td>Raise TT+, AK, AQ. Call wider vs steals</td></tr>
+      <tr><td>Big Blind</td><td>Already paid - defend wide vs raises</td></tr>
+    </table>
+
+    <h3>Phases by Big Blinds</h3>
+    <p><strong>50-25 BB:</strong> Tight is right. Premium hands only.</p>
+    <p><strong>25-12 BB:</strong> Steal selectively from late position.</p>
+    <p><strong>Under 12 BB:</strong> Shove or fold.</p>
+    <p><strong>Heads-up:</strong> Aggression wins.</p>
+
+    <h3>Raise or Call?</h3>
+    <p><strong>First in:</strong> Raise or fold. Never just call (limp).</p>
+    <p><strong>Vs a raise:</strong> Re-raise QQ+/AK, call small pair (set-mine), else fold.</p>
+    <p><strong>BB vs raise:</strong> Defend wider - you already paid.</p>
+
+    <h3>Notation</h3>
+    <p><strong>AK</strong> = Ace + King (either suits)</p>
+    <p><strong>AKs</strong> = Ace + King, same suit</p>
+    <p><strong>AKo</strong> = Ace + King, different suits</p>
+    <p><strong>22+</strong> = any pair from 22 upward</p>
+    <p><strong>K10+</strong> = K with a 10 or higher kicker</p>
+
+    <button class="modal-close" onclick="hideHelp()">Close</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// HAND RANGES (canonical notation: pairs "XX", suited "XYs", offsuit "XYo")
+// ============================================================
+
+const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+
+function pairsFrom(min) { return RANKS.slice(RANKS.indexOf(min)).map(r => r + r); }
+function suitedRange(high, lowMin) {
+  const arr = [], hiIdx = RANKS.indexOf(high), loStart = RANKS.indexOf(lowMin);
+  for (let i = loStart; i < hiIdx; i++) arr.push(high + RANKS[i] + 's');
+  return arr;
+}
+function offsuitRange(high, lowMin) {
+  const arr = [], hiIdx = RANKS.indexOf(high), loStart = RANKS.indexOf(lowMin);
+  for (let i = loStart; i < hiIdx; i++) arr.push(high + RANKS[i] + 'o');
+  return arr;
+}
+
+const UTG_RANGE = [...pairsFrom('J'), 'AKs', 'AKo', 'AQs'];
+const UTG1_RANGE = [...pairsFrom('T'), 'AKs','AKo','AQs','AQo','AJs','KQs'];
+const MP_RANGE = [...pairsFrom('9'), 'AKs','AKo','AQs','AQo','AJs','AJo','KQs','KQo'];
+
+const OPEN_RANGES = {
+  'UTG': new Set(UTG_RANGE),
+  'UTG+1': new Set(UTG1_RANGE),
+  'MP': new Set(MP_RANGE),
+  'HJ': new Set([...pairsFrom('7'), 'AKs','AKo','AQs','AQo','AJs','AJo','ATs','KQs','KQo','KJs','QJs']),
+  'CO': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','9'),
+    ...suitedRange('K','9'), ...offsuitRange('K','T'),
+    ...suitedRange('Q','9'), 'QJo','QTo',
+    ...suitedRange('J','9'), 'JTo',
+    'T9s','T8s','98s','87s','76s','65s'
+  ]),
+  'BTN': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','2'),
+    ...suitedRange('K','2'), ...offsuitRange('K','5'),
+    ...suitedRange('Q','5'), ...offsuitRange('Q','8'),
+    ...suitedRange('J','6'), ...offsuitRange('J','8'),
+    ...suitedRange('T','7'), 'T9o','T8o',
+    '98s','97s','87s','86s','76s','75s','65s','64s','54s','98o'
+  ]),
+  'SB': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','5'), ...offsuitRange('A','9'),
+    ...suitedRange('K','9'), ...offsuitRange('K','J'),
+    ...suitedRange('Q','9'), 'QJo',
+    'JTs','T9s'
+  ])
+};
+
+const PUSH_RANGES = {
+  'BTN': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','2'),
+    ...suitedRange('K','2'), ...offsuitRange('K','7'),
+    ...suitedRange('Q','5'), ...offsuitRange('Q','9'),
+    ...suitedRange('J','7'), 'JTo','J9o',
+    'T9s','T8s','T9o','98s','87s','76s','65s'
+  ]),
+  'CO': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','2'),
+    ...suitedRange('K','7'), ...offsuitRange('K','T'),
+    ...suitedRange('Q','9'), 'QJo','QTo',
+    ...suitedRange('J','9'), 'JTo'
+  ]),
+  'HJ': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','5'),
+    ...suitedRange('K','9'), 'KQo','KJo','KTo',
+    'QJs','QTs','JTs'
+  ]),
+  'MP': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','T'),
+    'KQs','KJs','KTs','KQo'
+  ]),
+  'UTG+1': new Set([
+    ...pairsFrom('5'),
+    ...suitedRange('A','5'), 'AKo','AQo','AJo',
+    'KQs','KJs','KQo'
+  ]),
+  'UTG': new Set([
+    ...pairsFrom('7'),
+    'AKs','AKo','AQs','AQo','AJs','KQs'
+  ]),
+  'SB': new Set([
+    ...pairsFrom('2'),
+    ...suitedRange('A','2'), ...offsuitRange('A','7'),
+    ...suitedRange('K','7'), 'KQo','KJo','KTo',
+    ...suitedRange('Q','8'), 'QJo','QTo',
+    'JTs','T9s'
+  ])
+};
+
+const THREEBET = new Set(['QQ','KK','AA','AKs','AKo']);
+const CALL_RAISE = new Set(['22','33','44','55','66','77','88','99','TT','JJ','AKs','AQs','AJs','KQs']);
+const BB_DEFEND = new Set([
+  ...pairsFrom('2'),
+  ...suitedRange('A','2'), ...offsuitRange('A','7'),
+  ...suitedRange('K','5'), ...offsuitRange('K','9'),
+  ...suitedRange('Q','7'), ...offsuitRange('Q','T'),
+  ...suitedRange('J','7'), ...offsuitRange('J','9'),
+  ...suitedRange('T','6'), 'T9o','T8o',
+  '98s','97s','87s','86s','76s','75s','65s','54s'
+]);
+
+// ============================================================
+// CARD / HAND HELPERS
+// ============================================================
+
+const SUITS = ['♠','♥','♦','♣']; // spades, hearts, diamonds, clubs
+const SUIT_COLOR = ['black','red','red','black'];
+
+function handNotation(c1, c2) {
+  const r1 = RANKS[c1.rank], r2 = RANKS[c2.rank];
+  if (r1 === r2) return r1 + r2;
+  const high = c1.rank > c2.rank ? r1 : r2;
+  const low  = c1.rank > c2.rank ? r2 : r1;
+  return high + low + (c1.suit === c2.suit ? 's' : 'o');
+}
+
+function handPretty(hand) {
+  const niceRank = r => r === 'T' ? '10' : r;
+  if (hand.length === 2) return niceRank(hand[0]) + niceRank(hand[1]);
+  const high = hand[0], low = hand[1], type = hand[2];
+  return niceRank(high) + niceRank(low) + (type === 's' ? ' suited' : ' offsuit');
+}
+
+const ALL_HANDS = (function() {
+  const arr = [];
+  for (let i = 0; i < 13; i++) arr.push(RANKS[i] + RANKS[i]);
+  for (let hi = 1; hi < 13; hi++) {
+    for (let lo = 0; lo < hi; lo++) {
+      arr.push(RANKS[hi] + RANKS[lo] + 's');
+      arr.push(RANKS[hi] + RANKS[lo] + 'o');
+    }
+  }
+  return arr;
+})();
+
+function randomHandFromSet(set) {
+  const arr = Array.from(set);
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function randomHandNotInSet(set) {
+  const out = ALL_HANDS.filter(h => !set.has(h));
+  return out[Math.floor(Math.random() * out.length)];
+}
+function cardsForHand(notation) {
+  if (notation.length === 2) {
+    const rank = RANKS.indexOf(notation[0]);
+    const s1 = Math.floor(Math.random() * 4);
+    let s2 = Math.floor(Math.random() * 4);
+    while (s2 === s1) s2 = Math.floor(Math.random() * 4);
+    return [{rank, suit: s1}, {rank, suit: s2}];
+  }
+  const r1 = RANKS.indexOf(notation[0]);
+  const r2 = RANKS.indexOf(notation[1]);
+  const suited = notation[2] === 's';
+  const s1 = Math.floor(Math.random() * 4);
+  let s2;
+  if (suited) {
+    s2 = s1;
+  } else {
+    s2 = Math.floor(Math.random() * 4);
+    while (s2 === s1) s2 = Math.floor(Math.random() * 4);
+  }
+  return [{rank: r1, suit: s1}, {rank: r2, suit: s2}];
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ============================================================
+// POSITIONS / ACTION ORDER
+// ============================================================
+
+// Action order at an 8-handed table preflop:
+// UTG -> UTG+1 -> MP -> HJ -> CO -> BTN -> SB -> BB
+const ACTION_ORDER = ['UTG','UTG+1','MP','HJ','CO','BTN','SB','BB'];
+
+// Seat order CLOCKWISE around the table starting from the BTN.
+// PokerStars displays clockwise from dealer button.
+const SEAT_ORDER = ['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'];
+
+const POSITION_NAMES = {
+  'UTG': 'Under the Gun',
+  'UTG+1': 'UTG+1',
+  'MP': 'Middle Pos.',
+  'HJ': 'Hi-jack',
+  'CO': 'Cut-off',
+  'BTN': 'Button',
+  'SB': 'Small Blind',
+  'BB': 'Big Blind'
+};
+
+const BLIND_LEVELS = [[100,200],[200,400],[300,600]];
+
+function actionIdx(pos) { return ACTION_ORDER.indexOf(pos); }
+
+// ============================================================
+// SCENARIO GENERATORS
+// ============================================================
+
+function genFirstIn() {
+  const positions = ['UTG','UTG+1','MP','HJ','CO','BTN','SB'];
+  const pos = pick(positions);
+  const range = OPEN_RANGES[pos];
+  const [sb, bb] = pick(BLIND_LEVELS);
+
+  const targetRaise = Math.random() < 0.5;
+  const hand = targetRaise ? randomHandFromSet(range) : randomHandNotInSet(range);
+  const cards = cardsForHand(hand);
+
+  // Everyone before the hero in action order has folded
+  const heroAct = actionIdx(pos);
+  const folded = ACTION_ORDER.slice(0, heroAct);
+
+  return {
+    tag: 'FIRST IN',
+    heroPos: pos,
+    hand, cards,
+    blinds: [sb, bb],
+    pot: sb + bb,
+    folded,
+    raiser: null,
+    raiseAmount: null,
+    options: [
+      { label: 'FOLD', value: 'fold', kind: 'fold' },
+      { label: 'RAISE ' + (bb * 3), value: 'raise', kind: 'raise' }
+    ],
+    correct: targetRaise ? 'raise' : 'fold',
+    why: targetRaise
+      ? '<strong>' + handPretty(hand) + '</strong> is a profitable open from <strong>' + POSITION_NAMES[pos] + '</strong>. Raise to about 3&times; the big blind (' + (bb * 3) + ') to put pressure on the blinds. Limping is leaky - take the initiative.'
+      : '<strong>' + handPretty(hand) + '</strong> is too weak to open from <strong>' + POSITION_NAMES[pos] + '</strong>. Your hand will be dominated too often by the players still to act behind you. Fold and wait for a better spot.'
+  };
+}
+
+function genFacingRaise() {
+  // Hero must act after raiser. Don't put hero in BB (separate question type).
+  // Pick hero from positions that have at least one earlier seat in action order.
+  const possible = ['UTG+1','MP','HJ','CO','BTN','SB'];
+  const heroPos = pick(possible);
+  const heroAct = actionIdx(heroPos);
+  // Raiser is in an earlier seat
+  const raiserPos = pick(ACTION_ORDER.slice(0, heroAct));
+
+  const [sb, bb] = pick(BLIND_LEVELS);
+  const raiseAmount = bb * 3;
+  const reraiseAmount = bb * 9;
+
+  // 1/3 each
+  const r = Math.random();
+  let hand;
+  if (r < 0.34) {
+    hand = randomHandFromSet(THREEBET);
+  } else if (r < 0.67) {
+    const callOnly = new Set(Array.from(CALL_RAISE).filter(h => !THREEBET.has(h)));
+    hand = randomHandFromSet(callOnly);
+  } else {
+    hand = randomHandNotInSet(CALL_RAISE);
+  }
+  const cards = cardsForHand(hand);
+
+  // Action history: everyone before raiser folded, raiser raised,
+  // everyone between raiser and hero folded
+  const beforeRaiser = ACTION_ORDER.slice(0, actionIdx(raiserPos));
+  const betweenRaiserAndHero = ACTION_ORDER.slice(actionIdx(raiserPos) + 1, heroAct);
+  const folded = [...beforeRaiser, ...betweenRaiserAndHero];
+
+  let correct, why;
+  if (THREEBET.has(hand)) {
+    correct = 'reraise';
+    why = '<strong>' + handPretty(hand) + '</strong> is a premium hand. When someone raises, re-raise to build the pot while you have the best of it. Calling is too passive with a hand this strong.';
+  } else if (CALL_RAISE.has(hand)) {
+    correct = 'call';
+    if (hand.length === 2 && hand[0] !== 'A' && hand[0] !== 'K' && hand[0] !== 'Q') {
+      why = '<strong>' + handPretty(hand) + '</strong> is perfect for <strong>set-mining</strong>. Call cheaply hoping to flop a set (~1 in 8). If you miss the flop, fold to any bet.';
+    } else {
+      why = '<strong>' + handPretty(hand) + '</strong> is strong enough to call here. Re-raising risks running into AA/KK, but the hand has good post-flop playability.';
+    }
+  } else {
+    correct = 'fold';
+    why = '<strong>' + handPretty(hand) + '</strong> is not strong enough vs <strong>' + POSITION_NAMES[raiserPos] + "</strong>'s raise. You'd be dominated too often. Fold and save chips for a better spot.";
+  }
+
+  return {
+    tag: 'FACING A RAISE',
+    heroPos,
+    hand, cards,
+    blinds: [sb, bb],
+    pot: sb + bb + raiseAmount,
+    folded,
+    raiser: raiserPos,
+    raiseAmount,
+    options: [
+      { label: 'FOLD', value: 'fold', kind: 'fold' },
+      { label: 'CALL ' + raiseAmount, value: 'call', kind: 'call' },
+      { label: 'RE-RAISE ' + reraiseAmount, value: 'reraise', kind: 'reraise' }
+    ],
+    correct, why
+  };
+}
+
+function genBBDefense() {
+  const heroPos = 'BB';
+  const raiserPos = pick(['UTG','UTG+1','MP','HJ','CO','BTN','SB']);
+  const [sb, bb] = pick(BLIND_LEVELS);
+  const raiseAmount = bb * 3;
+  const reraiseAmount = bb * 10;
+  const callAmount = raiseAmount - bb;
+
+  const r = Math.random();
+  let hand;
+  if (r < 0.34) {
+    hand = randomHandFromSet(THREEBET);
+  } else if (r < 0.67) {
+    const callOnly = new Set(Array.from(BB_DEFEND).filter(h => !THREEBET.has(h)));
+    hand = randomHandFromSet(callOnly);
+  } else {
+    hand = randomHandNotInSet(BB_DEFEND);
+  }
+  const cards = cardsForHand(hand);
+
+  const beforeRaiser = ACTION_ORDER.slice(0, actionIdx(raiserPos));
+  const betweenRaiserAndBB = ACTION_ORDER.slice(actionIdx(raiserPos) + 1, actionIdx('BB'));
+  const folded = [...beforeRaiser, ...betweenRaiserAndBB];
+
+  let correct, why;
+  if (THREEBET.has(hand)) {
+    correct = 'reraise';
+    why = '<strong>' + handPretty(hand) + '</strong> is too strong to just call from the BB. Re-raise (3-bet) to build the pot - get money in while you have the goods.';
+  } else if (BB_DEFEND.has(hand)) {
+    correct = 'call';
+    why = '<strong>' + handPretty(hand) + "</strong> is a fine BB defend - you're getting a discount (already paid " + bb + ' as the BB). Hands like this play well from BB.';
+  } else {
+    correct = 'fold';
+    why = '<strong>' + handPretty(hand) + "</strong> is too weak even from the BB. You'd be out of position with a dominated hand. The blind isn't a license to defend with junk.";
+  }
+
+  return {
+    tag: 'BIG BLIND DEFENCE',
+    heroPos,
+    hand, cards,
+    blinds: [sb, bb],
+    pot: sb + bb + raiseAmount,
+    folded,
+    raiser: raiserPos,
+    raiseAmount,
+    options: [
+      { label: 'FOLD', value: 'fold', kind: 'fold' },
+      { label: 'CALL ' + callAmount, value: 'call', kind: 'call' },
+      { label: 'RE-RAISE ' + reraiseAmount, value: 'reraise', kind: 'reraise' }
+    ],
+    correct, why
+  };
+}
+
+function genPushFold() {
+  const positions = ['UTG','UTG+1','MP','HJ','CO','BTN','SB'];
+  const pos = pick(positions);
+  const bbCount = 5 + Math.floor(Math.random() * 7); // 5-11 BB
+  const [sb, bb] = pick(BLIND_LEVELS);
+  const yourChips = bbCount * bb;
+
+  const range = PUSH_RANGES[pos];
+  const targetShove = Math.random() < 0.5;
+  const hand = targetShove ? randomHandFromSet(range) : randomHandNotInSet(range);
+  const cards = cardsForHand(hand);
+
+  const heroAct = actionIdx(pos);
+  const folded = ACTION_ORDER.slice(0, heroAct);
+
+  return {
+    tag: 'SHORT STACK (' + bbCount + ' BB)',
+    heroPos: pos,
+    hand, cards,
+    blinds: [sb, bb],
+    pot: sb + bb,
+    folded,
+    raiser: null,
+    raiseAmount: null,
+    heroStack: yourChips,
+    options: [
+      { label: 'FOLD', value: 'fold', kind: 'fold' },
+      { label: 'SHOVE ALL-IN', value: 'shove', kind: 'shove' }
+    ],
+    correct: targetShove ? 'shove' : 'fold',
+    why: targetShove
+      ? '<strong>' + handPretty(hand) + '</strong> is a profitable all-in shove from <strong>' + POSITION_NAMES[pos] + '</strong> with ' + bbCount + " BB. You can't afford to raise then fold - it's shove or muck. This hand has good fold equity plus decent showdown equity when called."
+      : '<strong>' + handPretty(hand) + '</strong> is too weak to shove from <strong>' + POSITION_NAMES[pos] + '</strong>. Even short-stacked, you need a hand with enough equity when called. Fold one more orbit and wait for a shovable hand.'
+  };
+}
+
+function generateQuestion() {
+  const r = Math.random();
+  if (r < 0.55) return genFirstIn();
+  if (r < 0.75) return genFacingRaise();
+  if (r < 0.88) return genBBDefense();
+  return genPushFold();
+}
+
+// ============================================================
+// SEAT LAYOUT - 8 screen positions around the oval table
+// Index 0 is bottom-center (HERO). Going CLOCKWISE around the screen.
+// ============================================================
+
+const SEAT_POSITIONS = [
+  { x: 50,  y: 96 },   // 0: bottom-center (hero)
+  { x: 18,  y: 86 },   // 1: bottom-left (next clockwise on screen)
+  { x: 2,   y: 50 },   // 2: left
+  { x: 18,  y: 12 },   // 3: top-left
+  { x: 50,  y: 0  },   // 4: top-center
+  { x: 82,  y: 12 },   // 5: top-right
+  { x: 98,  y: 50 },   // 6: right
+  { x: 82,  y: 86 },   // 7: bottom-right
+];
+
+function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseAmount) {
+  return ''
+    + '<div class="seat-cards-row">'
+    +   (isHero ? '' : '<div class="seat-card-mini"></div><div class="seat-card-mini"></div>')
+    + '</div>'
+    + '<div class="seat-info">'
+    +   '<div class="seat-pos">' + positionLabel + '</div>'
+    +   '<div class="seat-stack">' + stack.toLocaleString() + '</div>'
+    + '</div>'
+    + (hasRaised ? '<div class="seat-chip raised" style="top: -8px; right: -8px;">' + raiseAmount + '</div>' : '');
+}
+
+function placeSeats(question) {
+  // Hero is at bottom-center (index 0).
+  // Seat at screen index i shows position SEAT_ORDER offset so that hero's
+  // position appears at index 0.
+  const heroPos = question.heroPos;
+  const heroSeatIdx = SEAT_ORDER.indexOf(heroPos);
+
+  for (let screenIdx = 0; screenIdx < 8; screenIdx++) {
+    // Going CLOCKWISE on screen from hero. In SEAT_ORDER, clockwise is forward.
+    const orderIdx = (heroSeatIdx + screenIdx) % 8;
+    const pos = SEAT_ORDER[orderIdx];
+    const seatEl = document.getElementById('seat-' + screenIdx);
+    const isHero = screenIdx === 0;
+    const isFolded = question.folded.includes(pos);
+    const hasRaised = question.raiser === pos;
+    const stack = isHero
+      ? (question.heroStack || 10000)
+      : (8500 + Math.floor(Math.random() * 3000));
+    const raiseAmount = question.raiseAmount;
+
+    seatEl.style.left = SEAT_POSITIONS[screenIdx].x + '%';
+    seatEl.style.top  = SEAT_POSITIONS[screenIdx].y + '%';
+    seatEl.className = 'seat'
+      + (isHero ? ' hero' : '')
+      + (isFolded ? ' folded' : '');
+    seatEl.innerHTML = buildSeatHTML(pos, stack, isHero, isFolded, hasRaised, raiseAmount);
+  }
+
+  // Dealer button at BTN seat
+  const btnOrderIdx = SEAT_ORDER.indexOf('BTN');
+  const btnScreenIdx = (btnOrderIdx - heroSeatIdx + 8) % 8;
+  const dealerEl = document.getElementById('dealer-btn');
+  // Offset slightly inside the oval
+  const seatPos = SEAT_POSITIONS[btnScreenIdx];
+  // Move D toward the centre of the table
+  const dx = (50 - seatPos.x) * 0.18;
+  const dy = (50 - seatPos.y) * 0.18;
+  dealerEl.style.left = 'calc(' + (seatPos.x + dx) + '% - 11px)';
+  dealerEl.style.top  = 'calc(' + (seatPos.y + dy) + '% - 11px)';
+}
+
+// ============================================================
+// CARD RENDERING (hero's big cards)
+// ============================================================
+
+function renderHeroCard(card) {
+  const r = RANKS[card.rank];
+  const rDisplay = r === 'T' ? '10' : r;
+  const s = SUITS[card.suit];
+  const color = SUIT_COLOR[card.suit];
+  return '<div class="card-big ' + color + '">'
+    +   '<div class="corner-tl"><div>' + rDisplay + '</div><div style="font-size:11px;">' + s + '</div></div>'
+    +   '<div class="rank">' + rDisplay + '</div>'
+    +   '<div class="suit">' + s + '</div>'
+    +   '<div class="corner-br"><div>' + rDisplay + '</div><div style="font-size:11px;">' + s + '</div></div>'
+    + '</div>';
+}
+
+// ============================================================
+// GAME STATE & FLOW
+// ============================================================
+
+let state = {
+  score: 0,
+  total: 0,
+  streak: 0,
+  bestStreak: 0,
+  currentQuestion: null,
+  answered: false
+};
+
+function updateStats() {
+  document.getElementById('score').textContent = state.score;
+  document.getElementById('streak').textContent = state.streak;
+  document.getElementById('total').textContent = state.total;
+  const acc = state.total === 0 ? '-' : Math.round((state.score / state.total) * 100) + '%';
+  document.getElementById('accuracy').textContent = acc;
+}
+
+function loadQuestion() {
+  state.currentQuestion = generateQuestion();
+  state.answered = false;
+  const q = state.currentQuestion;
+
+  // Scenario tag + pot + blinds
+  document.getElementById('scenario-tag').textContent = q.tag;
+  document.getElementById('pot-amount').textContent = 'Pot: ' + q.pot.toLocaleString();
+  document.getElementById('blinds-info').textContent = 'Blinds ' + q.blinds[0] + '/' + q.blinds[1];
+
+  // Place seats
+  placeSeats(q);
+
+  // Hero info & cards
+  const heroStack = q.heroStack || 10000;
+  document.getElementById('hero-name').textContent = 'YOU - ' + POSITION_NAMES[q.heroPos];
+  document.getElementById('hero-stack-label').textContent = 'Stack: ' + heroStack.toLocaleString() + ' chips';
+  document.getElementById('hero-cards').innerHTML = q.cards.map(renderHeroCard).join('');
+
+  // Action buttons
+  const actionBar = document.getElementById('action-bar');
+  actionBar.innerHTML = q.options.map(opt =>
+    '<button class="action-btn ' + opt.kind + '" data-value="' + opt.value + '" onclick="handleAnswer(\'' + opt.value + '\')">' + opt.label + '</button>'
+  ).join('');
+
+  // Clear feedback
+  document.getElementById('feedback-area').innerHTML = '';
+}
+
+function handleAnswer(value) {
+  if (state.answered) return;
+  state.answered = true;
+  state.total++;
+  const q = state.currentQuestion;
+  const isCorrect = value === q.correct;
+  if (isCorrect) {
+    state.score++;
+    state.streak++;
+    if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+  } else {
+    state.streak = 0;
+  }
+
+  document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.disabled = true;
+    const v = btn.getAttribute('data-value');
+    if (v === q.correct) btn.classList.add('correct');
+    else if (v === value) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+
+  const fbClass = isCorrect ? 'correct' : 'wrong';
+  const fbTitle = isCorrect ? '✓  Correct' : '✗  Not quite';
+  document.getElementById('feedback-area').innerHTML =
+    '<div class="feedback ' + fbClass + '">' +
+      '<div class="feedback-title">' + fbTitle + '</div>' +
+      '<div class="feedback-text">' + q.why + '</div>' +
+      '<button class="next-btn" onclick="loadQuestion()">Next hand &rarr;</button>' +
+    '</div>';
+
+  updateStats();
+  saveState();
+}
+
+function showHelp() { document.getElementById('help-modal').classList.add('show'); }
+function hideHelp() { document.getElementById('help-modal').classList.remove('show'); }
+
+function resetStats() {
+  if (!confirm('Reset your score and start over?')) return;
+  state = { score: 0, total: 0, streak: 0, bestStreak: 0, currentQuestion: null, answered: false };
+  saveState();
+  updateStats();
+  loadQuestion();
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('pokerTrainerState', JSON.stringify({
+      score: state.score, total: state.total, streak: state.streak, bestStreak: state.bestStreak
+    }));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    const d = JSON.parse(localStorage.getItem('pokerTrainerState'));
+    if (d) {
+      state.score = d.score || 0;
+      state.total = d.total || 0;
+      state.streak = d.streak || 0;
+      state.bestStreak = d.bestStreak || 0;
+    }
+  } catch (e) {}
+}
+
+// Init
+loadState();
+updateStats();
+loadQuestion();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { hideHelp(); return; }
+  if (state.answered) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); loadQuestion(); }
+  } else {
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= 4) {
+      const btns = document.querySelectorAll('.action-btn');
+      if (btns[num - 1]) btns[num - 1].click();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
