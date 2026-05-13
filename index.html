@@ -116,13 +116,13 @@
   }
   .scenario-tag {
     display: inline-block;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.65);
     color: #c79a3a;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.8px;
-    padding: 3px 10px;
-    border-radius: 10px;
+    padding: 4px 12px;
+    border-radius: 11px;
     border: 1px solid rgba(199, 154, 58, 0.4);
     text-transform: uppercase;
     margin-bottom: 8px;
@@ -151,38 +151,38 @@
     display: inline-block;
   }
   .pot-amount {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     color: #fff;
   }
   .blinds-info {
-    font-size: 10px;
+    font-size: 12px;
     color: #c79a3a;
-    margin-top: 1px;
+    margin-top: 2px;
     letter-spacing: 0.5px;
   }
 
   /* ---------- Seats ---------- */
   .seat {
     position: absolute;
-    width: 84px;
+    width: 100px;
     transform: translate(-50%, -50%);
     text-align: center;
     transition: transform 0.18s;
   }
 
-  .seat.folded { opacity: 0.32; }
+  .seat.folded { opacity: 0.36; }
 
   .seat-cards-row {
     display: flex;
     gap: 2px;
     justify-content: center;
-    height: 28px;
+    height: 32px;
     align-items: center;
   }
   .seat-card-mini {
-    width: 18px;
-    height: 26px;
+    width: 22px;
+    height: 30px;
     border-radius: 2px;
     background:
       repeating-linear-gradient(45deg, rgba(255,255,255,0.07), rgba(255,255,255,0.07) 2px, transparent 2px, transparent 4px),
@@ -192,23 +192,23 @@
   .seat.folded .seat-card-mini { background: #222; border-color: #444; }
 
   .seat-info {
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.8);
     border-radius: 6px;
-    padding: 3px 6px;
+    padding: 4px 7px;
     margin-top: 3px;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
   }
   .seat-pos {
     color: #c79a3a;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.4px;
   }
   .seat-stack {
     color: #fff;
-    font-size: 10px;
-    font-weight: 500;
-    margin-top: 1px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 2px;
   }
 
   .seat.hero .seat-info {
@@ -222,25 +222,25 @@
   /* ---------- Bet chips on the felt (in front of seats) ---------- */
   .bet-chip {
     position: absolute;
-    border: 1.5px solid rgba(255,255,255,0.9);
-    border-radius: 14px;
-    padding: 3px 8px;
+    border: 2px solid rgba(255,255,255,0.95);
+    border-radius: 16px;
+    padding: 5px 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10.5px;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.3px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.6);
     white-space: nowrap;
     z-index: 4;
     transform: translate(-50%, -50%);
   }
   .bet-chip .lbl {
-    opacity: 0.85;
-    font-size: 8px;
-    margin-right: 4px;
-    letter-spacing: 0.5px;
+    opacity: 0.95;
+    font-size: 10px;
+    margin-right: 5px;
+    letter-spacing: 0.6px;
   }
   .bet-chip.sb {
     background: linear-gradient(180deg, #5b9bd5 0%, #2e5b8c 100%);
@@ -253,8 +253,8 @@
   .bet-chip.raise {
     background: linear-gradient(180deg, #e25c5c 0%, #8d1f1f 100%);
     color: #fff;
-    font-size: 11px;
-    padding: 4px 10px;
+    font-size: 14px;
+    padding: 6px 14px;
   }
 
   .dealer-btn {
@@ -280,12 +280,12 @@
     background: rgba(0,0,0,0.5);
     border: 1px solid rgba(199, 154, 58, 0.25);
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     margin-bottom: 6px;
-    font-size: 12.5px;
-    color: #ddd;
+    font-size: 14px;
+    color: #e8e8e8;
     text-align: center;
-    line-height: 1.35;
+    line-height: 1.4;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }
   .action-log .fold-name { color: #888; }
@@ -295,20 +295,20 @@
   /* ---------- Seat fold indicator (under seat box) ---------- */
   .seat-status {
     position: absolute;
-    bottom: -11px;
+    bottom: -13px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 9px;
+    padding: 3px 10px;
+    border-radius: 11px;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.6px;
-    border: 1px solid rgba(0,0,0,0.5);
+    letter-spacing: 0.7px;
+    border: 1px solid rgba(0,0,0,0.6);
     white-space: nowrap;
   }
   .seat-status.fold {
     background: #4a4a4a;
-    color: #ddd;
+    color: #e5e5e5;
   }
 
   /* ---------- Hero zone (under table) ---------- */
@@ -579,13 +579,18 @@
 
   /* ---------- Responsive ---------- */
   @media (max-width: 560px) {
-    .seat { width: 64px; }
-    .seat-pos { font-size: 9px; }
-    .seat-stack { font-size: 9px; }
-    .seat-card-mini { width: 14px; height: 20px; }
+    .seat { width: 78px; }
+    .seat-pos { font-size: 11px; }
+    .seat-stack { font-size: 10.5px; }
+    .seat-card-mini { width: 16px; height: 22px; }
+    .seat-status { font-size: 9.5px; padding: 2px 7px; }
+    .bet-chip { font-size: 11px; padding: 4px 9px; }
+    .bet-chip.raise { font-size: 12px; padding: 4px 10px; }
+    .bet-chip .lbl { font-size: 9px; }
     .card-big { width: 50px; height: 70px; }
     .card-big .rank { font-size: 20px; }
     .card-big .suit { font-size: 24px; }
+    .action-log { font-size: 12.5px; }
     .top-bar { flex-direction: column; gap: 6px; align-items: stretch; }
     .stats { justify-content: space-around; }
     .title { text-align: center; }
