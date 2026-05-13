@@ -292,37 +292,23 @@
   .action-log .raise-name { color: #e25c5c; font-weight: 700; }
   .action-log .your-turn { color: #c79a3a; font-weight: 700; }
 
-  /* ---------- Seat fold/raise indicator (under seat box) ---------- */
+  /* ---------- Seat fold indicator (under seat box) ---------- */
   .seat-status {
     position: absolute;
-    bottom: -12px;
+    bottom: -11px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 2px 7px;
+    padding: 2px 8px;
     border-radius: 10px;
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.6px;
     border: 1px solid rgba(0,0,0,0.5);
     white-space: nowrap;
-    text-transform: uppercase;
   }
   .seat-status.fold {
     background: #4a4a4a;
     color: #ddd;
-  }
-  .seat-status.raise {
-    background: linear-gradient(180deg, #e25c5c 0%, #8d1f1f 100%);
-    color: #fff;
-    box-shadow: 0 0 8px rgba(226, 92, 92, 0.6);
-  }
-  .seat-status.blind {
-    background: linear-gradient(180deg, #5b9bd5 0%, #2e5b8c 100%);
-    color: #fff;
-  }
-  .seat-status.bb-blind {
-    background: linear-gradient(180deg, #c79a3a 0%, #8d6c1f 100%);
-    color: #fff;
   }
 
   /* ---------- Hero zone (under table) ---------- */
@@ -1150,17 +1136,8 @@ const SEAT_POSITIONS = [
   { x: 82,  y: 86 },   // 7: bottom-right
 ];
 
-function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseAmount, blindRole) {
-  let statusHtml = '';
-  if (isFolded) {
-    statusHtml = '<div class="seat-status fold">FOLD</div>';
-  } else if (hasRaised) {
-    statusHtml = '<div class="seat-status raise">RAISES ' + raiseAmount + '</div>';
-  } else if (blindRole === 'SB') {
-    statusHtml = '<div class="seat-status blind">SMALL BLIND</div>';
-  } else if (blindRole === 'BB') {
-    statusHtml = '<div class="seat-status bb-blind">BIG BLIND</div>';
-  }
+function buildSeatHTML(positionLabel, stack, isHero, isFolded) {
+  const statusHtml = isFolded ? '<div class="seat-status fold">FOLD</div>' : '';
   return ''
     + '<div class="seat-cards-row">'
     +   (isHero ? '' : '<div class="seat-card-mini"></div><div class="seat-card-mini"></div>')
@@ -1226,9 +1203,7 @@ function placeSeats(question) {
     seatEl.className = 'seat'
       + (isHero ? ' hero' : '')
       + (isFolded ? ' folded' : '');
-    // Don't show "SMALL BLIND" / "BIG BLIND" label if this seat is the raiser or folded
-    const blindRole = (!isFolded && !hasRaised) ? (pos === 'SB' ? 'SB' : (pos === 'BB' ? 'BB' : null)) : null;
-    seatEl.innerHTML = buildSeatHTML(pos, stack, isHero, isFolded, hasRaised, raiseAmount, blindRole);
+    seatEl.innerHTML = buildSeatHTML(pos, stack, isHero, isFolded);
   }
 
   // Dealer button at BTN seat
