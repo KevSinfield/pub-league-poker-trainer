@@ -219,25 +219,42 @@
   .seat.hero .seat-pos { color: #1a3d2a; }
   .seat.hero .seat-stack { color: #fff; }
 
-  .seat-chip {
+  /* ---------- Bet chips on the felt (in front of seats) ---------- */
+  .bet-chip {
     position: absolute;
-    background: linear-gradient(180deg, #d4a847 0%, #8d6c1f 100%);
-    border: 2px solid #fff;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
+    border: 1.5px solid rgba(255,255,255,0.9);
+    border-radius: 14px;
+    padding: 3px 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #1a1a1a;
-    font-size: 9px;
+    font-size: 10.5px;
     font-weight: 800;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+    white-space: nowrap;
+    z-index: 4;
+    transform: translate(-50%, -50%);
   }
-
-  .seat-chip.raised {
+  .bet-chip .lbl {
+    opacity: 0.85;
+    font-size: 8px;
+    margin-right: 4px;
+    letter-spacing: 0.5px;
+  }
+  .bet-chip.sb {
+    background: linear-gradient(180deg, #5b9bd5 0%, #2e5b8c 100%);
+    color: #fff;
+  }
+  .bet-chip.bb {
+    background: linear-gradient(180deg, #c79a3a 0%, #8d6c1f 100%);
+    color: #fff;
+  }
+  .bet-chip.raise {
     background: linear-gradient(180deg, #e25c5c 0%, #8d1f1f 100%);
     color: #fff;
+    font-size: 11px;
+    padding: 4px 10px;
   }
 
   .dealer-btn {
@@ -275,26 +292,36 @@
   .action-log .raise-name { color: #e25c5c; font-weight: 700; }
   .action-log .your-turn { color: #c79a3a; font-weight: 700; }
 
-  /* ---------- Seat fold/raise indicator ---------- */
+  /* ---------- Seat fold/raise indicator (under seat box) ---------- */
   .seat-status {
     position: absolute;
-    bottom: -10px;
+    bottom: -12px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 1px 6px;
-    border-radius: 8px;
-    font-size: 8.5px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     border: 1px solid rgba(0,0,0,0.5);
     white-space: nowrap;
+    text-transform: uppercase;
   }
   .seat-status.fold {
-    background: #3a3a3a;
-    color: #aaa;
+    background: #4a4a4a;
+    color: #ddd;
   }
   .seat-status.raise {
     background: linear-gradient(180deg, #e25c5c 0%, #8d1f1f 100%);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(226, 92, 92, 0.6);
+  }
+  .seat-status.blind {
+    background: linear-gradient(180deg, #5b9bd5 0%, #2e5b8c 100%);
+    color: #fff;
+  }
+  .seat-status.bb-blind {
+    background: linear-gradient(180deg, #c79a3a 0%, #8d6c1f 100%);
     color: #fff;
   }
 
@@ -1123,12 +1150,16 @@ const SEAT_POSITIONS = [
   { x: 82,  y: 86 },   // 7: bottom-right
 ];
 
-function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseAmount) {
+function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseAmount, blindRole) {
   let statusHtml = '';
   if (isFolded) {
     statusHtml = '<div class="seat-status fold">FOLD</div>';
   } else if (hasRaised) {
-    statusHtml = '<div class="seat-status raise">RAISE ' + raiseAmount + '</div>';
+    statusHtml = '<div class="seat-status raise">RAISES ' + raiseAmount + '</div>';
+  } else if (blindRole === 'SB') {
+    statusHtml = '<div class="seat-status blind">SMALL BLIND</div>';
+  } else if (blindRole === 'BB') {
+    statusHtml = '<div class="seat-status bb-blind">BIG BLIND</div>';
   }
   return ''
     + '<div class="seat-cards-row">'
@@ -1138,7 +1169,6 @@ function buildSeatHTML(positionLabel, stack, isHero, isFolded, hasRaised, raiseA
     +   '<div class="seat-pos">' + positionLabel + '</div>'
     +   '<div class="seat-stack">' + stack.toLocaleString() + '</div>'
     + '</div>'
-    + (hasRaised ? '<div class="seat-chip raised" style="top: -8px; right: -8px;">' + raiseAmount + '</div>' : '')
     + statusHtml;
 }
 
@@ -1196,7 +1226,9 @@ function placeSeats(question) {
     seatEl.className = 'seat'
       + (isHero ? ' hero' : '')
       + (isFolded ? ' folded' : '');
-    seatEl.innerHTML = buildSeatHTML(pos, stack, isHero, isFolded, hasRaised, raiseAmount);
+    // Don't show "SMALL BLIND" / "BIG BLIND" label if this seat is the raiser or folded
+    const blindRole = (!isFolded && !hasRaised) ? (pos === 'SB' ? 'SB' : (pos === 'BB' ? 'BB' : null)) : null;
+    seatEl.innerHTML = buildSeatHTML(pos, stack, isHero, isFolded, hasRaised, raiseAmount, blindRole);
   }
 
   // Dealer button at BTN seat
@@ -1210,6 +1242,55 @@ function placeSeats(question) {
   const dy = (50 - seatPos.y) * 0.18;
   dealerEl.style.left = 'calc(' + (seatPos.x + dx) + '% - 11px)';
   dealerEl.style.top  = 'calc(' + (seatPos.y + dy) + '% - 11px)';
+}
+
+// Place chips on the felt in front of each seat that has money in
+function placeBetChips(question) {
+  const felt = document.getElementById('table-felt');
+  // Clear previous chips
+  felt.querySelectorAll('.bet-chip').forEach(el => el.remove());
+
+  const heroPos = question.heroPos;
+  const heroSeatIdx = SEAT_ORDER.indexOf(heroPos);
+  const folded = question.folded || [];
+
+  for (let screenIdx = 0; screenIdx < 8; screenIdx++) {
+    const orderIdx = (heroSeatIdx + screenIdx) % 8;
+    const pos = SEAT_ORDER[orderIdx];
+    if (folded.includes(pos)) continue;
+
+    let cssClass = '';
+    let label = '';
+    let amount = '';
+
+    if (question.raiser === pos) {
+      cssClass = 'raise';
+      label = 'RAISE';
+      amount = String(question.raiseAmount);
+    } else if (pos === 'SB') {
+      cssClass = 'sb';
+      label = 'SB';
+      amount = String(question.blinds[0]);
+    } else if (pos === 'BB') {
+      cssClass = 'bb';
+      label = 'BB';
+      amount = String(question.blinds[1]);
+    } else {
+      continue;
+    }
+
+    const seatPos = SEAT_POSITIONS[screenIdx];
+    // Chip lives ~32% of the way from seat toward table centre
+    const chipX = seatPos.x + (50 - seatPos.x) * 0.34;
+    const chipY = seatPos.y + (50 - seatPos.y) * 0.34;
+
+    const chip = document.createElement('div');
+    chip.className = 'bet-chip ' + cssClass;
+    chip.innerHTML = '<span class="lbl">' + label + '</span>' + amount;
+    chip.style.left = chipX + '%';
+    chip.style.top  = chipY + '%';
+    felt.appendChild(chip);
+  }
 }
 
 // ============================================================
@@ -1260,8 +1341,9 @@ function loadQuestion() {
   document.getElementById('pot-amount').textContent = 'Pot: ' + q.pot.toLocaleString();
   document.getElementById('blinds-info').textContent = 'Blinds ' + q.blinds[0] + '/' + q.blinds[1];
 
-  // Place seats
+  // Place seats and bet chips
   placeSeats(q);
+  placeBetChips(q);
 
   // Action narration
   document.getElementById('action-log').innerHTML = buildActionNarration(q);
