@@ -580,18 +580,25 @@
 
   /* ---------- Responsive ---------- */
   @media (max-width: 560px) {
-    .seat { width: 78px; }
+    .table-frame { aspect-ratio: 16 / 12; padding: 10px; }
+    .seat { width: 70px; }
     .seat-pos { font-size: 11px; }
     .seat-stack { font-size: 10.5px; }
+    .seat-info { padding: 3px 5px; }
+    .seat-cards-row { height: 26px; }
     .seat-card-mini { width: 16px; height: 22px; }
-    .seat-status { font-size: 9.5px; padding: 2px 7px; }
-    .bet-chip { font-size: 11px; padding: 4px 9px; }
+    .seat-status { font-size: 9.5px; padding: 2px 7px; bottom: -10px; }
+    .bet-chip { font-size: 11px; padding: 3px 8px; border-radius: 13px; }
     .bet-chip.raise { font-size: 12px; padding: 4px 10px; }
-    .bet-chip .lbl { font-size: 9px; }
+    .bet-chip .lbl { font-size: 9px; margin-right: 3px; }
+    .scenario-tag { font-size: 10.5px; padding: 3px 9px; }
+    .pot-amount { font-size: 14px; }
+    .blinds-info { font-size: 10.5px; }
+    .pot-info { padding: 4px 11px; }
     .card-big { width: 50px; height: 70px; }
     .card-big .rank { font-size: 20px; }
     .card-big .suit { font-size: 24px; }
-    .action-log { font-size: 12.5px; }
+    .action-log { font-size: 12.5px; padding: 6px 12px; }
     .top-bar { flex-direction: column; gap: 6px; align-items: stretch; }
     .stats { justify-content: space-around; }
     .title { text-align: center; }
@@ -1131,7 +1138,7 @@ function generateQuestion() {
 // Index 0 is bottom-center (HERO). Going CLOCKWISE around the screen.
 // ============================================================
 
-const SEAT_POSITIONS = [
+const SEAT_POSITIONS_DESKTOP = [
   { x: 50,  y: 96 },   // 0: bottom-center (hero)
   { x: 18,  y: 86 },   // 1: bottom-left (next clockwise on screen)
   { x: 2,   y: 50 },   // 2: left
@@ -1141,6 +1148,25 @@ const SEAT_POSITIONS = [
   { x: 98,  y: 50 },   // 6: right
   { x: 82,  y: 86 },   // 7: bottom-right
 ];
+
+const SEAT_POSITIONS_MOBILE = [
+  { x: 50,  y: 90 },   // 0: bottom-center (hero)
+  { x: 16,  y: 78 },   // 1: bottom-left
+  { x: 10,  y: 50 },   // 2: left (pulled inward from edge)
+  { x: 16,  y: 22 },   // 3: top-left
+  { x: 50,  y: 10 },   // 4: top-center (pulled down inside felt)
+  { x: 84,  y: 22 },   // 5: top-right
+  { x: 90,  y: 50 },   // 6: right (pulled inward)
+  { x: 84,  y: 78 },   // 7: bottom-right
+];
+
+function isMobile() { return window.innerWidth < 560; }
+function getSeatPositions() { return isMobile() ? SEAT_POSITIONS_MOBILE : SEAT_POSITIONS_DESKTOP; }
+function getChipOffset() { return isMobile() ? 0.30 : 0.34; }
+function getDealerOffset() { return isMobile() ? 0.42 : 0.18; }
+
+// Backward-compat alias used elsewhere
+const SEAT_POSITIONS = SEAT_POSITIONS_DESKTOP;
 
 function buildSeatHTML(positionLabel, stack, isHero, isFolded) {
   const statusHtml = isFolded ? '<div class="seat-status fold">FOLD</div>' : '';
@@ -1190,6 +1216,7 @@ function placeSeats(question) {
   // position appears at index 0.
   const heroPos = question.heroPos;
   const heroSeatIdx = SEAT_ORDER.indexOf(heroPos);
+  const positions = getSeatPositions();
 
   for (let screenIdx = 0; screenIdx < 8; screenIdx++) {
     // Going CLOCKWISE on screen from hero. In SEAT_ORDER, clockwise is forward.
@@ -1204,8 +1231,8 @@ function placeSeats(question) {
       : (8500 + Math.floor(Math.random() * 3000));
     const raiseAmount = question.raiseAmount;
 
-    seatEl.style.left = SEAT_POSITIONS[screenIdx].x + '%';
-    seatEl.style.top  = SEAT_POSITIONS[screenIdx].y + '%';
+    seatEl.style.left = positions[screenIdx].x + '%';
+    seatEl.style.top  = positions[screenIdx].y + '%';
     seatEl.className = 'seat'
       + (isHero ? ' hero' : '')
       + (isFolded ? ' folded' : '');
@@ -1216,11 +1243,10 @@ function placeSeats(question) {
   const btnOrderIdx = SEAT_ORDER.indexOf('BTN');
   const btnScreenIdx = (btnOrderIdx - heroSeatIdx + 8) % 8;
   const dealerEl = document.getElementById('dealer-btn');
-  // Offset slightly inside the oval
-  const seatPos = SEAT_POSITIONS[btnScreenIdx];
-  // Move D toward the centre of the table
-  const dx = (50 - seatPos.x) * 0.18;
-  const dy = (50 - seatPos.y) * 0.18;
+  const seatPos = positions[btnScreenIdx];
+  const dealerOff = getDealerOffset();
+  const dx = (50 - seatPos.x) * dealerOff;
+  const dy = (50 - seatPos.y) * dealerOff;
   dealerEl.style.left = 'calc(' + (seatPos.x + dx) + '% - 11px)';
   dealerEl.style.top  = 'calc(' + (seatPos.y + dy) + '% - 11px)';
 }
@@ -1234,6 +1260,8 @@ function placeBetChips(question) {
   const heroPos = question.heroPos;
   const heroSeatIdx = SEAT_ORDER.indexOf(heroPos);
   const folded = question.folded || [];
+  const positions = getSeatPositions();
+  const chipOff = getChipOffset();
 
   for (let screenIdx = 0; screenIdx < 8; screenIdx++) {
     const orderIdx = (heroSeatIdx + screenIdx) % 8;
@@ -1260,10 +1288,9 @@ function placeBetChips(question) {
       continue;
     }
 
-    const seatPos = SEAT_POSITIONS[screenIdx];
-    // Chip lives ~32% of the way from seat toward table centre
-    const chipX = seatPos.x + (50 - seatPos.x) * 0.34;
-    const chipY = seatPos.y + (50 - seatPos.y) * 0.34;
+    const seatPos = positions[screenIdx];
+    const chipX = seatPos.x + (50 - seatPos.x) * chipOff;
+    const chipY = seatPos.y + (50 - seatPos.y) * chipOff;
 
     const chip = document.createElement('div');
     chip.className = 'bet-chip ' + cssClass;
@@ -1414,6 +1441,17 @@ function loadState() {
 loadState();
 updateStats();
 loadQuestion();
+
+// Re-layout on window resize / orientation change (mobile vs desktop seat positions)
+let _resizeTimer = null;
+window.addEventListener('resize', function() {
+  if (!state.currentQuestion) return;
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    placeSeats(state.currentQuestion);
+    placeBetChips(state.currentQuestion);
+  }, 150);
+});
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
