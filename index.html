@@ -36,12 +36,36 @@
     margin-bottom: 6px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }
+  .top-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   .title {
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 1.5px;
     color: #c79a3a;
   }
+  .mute-btn {
+    background: rgba(199, 154, 58, 0.12);
+    border: 1px solid rgba(199, 154, 58, 0.4);
+    color: #c79a3a;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .mute-btn:hover { background: rgba(199, 154, 58, 0.28); }
+  .mute-btn:active { transform: scale(0.92); }
+  .mute-btn.muted { opacity: 0.55; }
   .stats {
     display: flex;
     gap: 14px;
@@ -610,7 +634,10 @@
 <div class="app">
 
   <header class="top-bar">
-    <div class="title">POKER TRAINER</div>
+    <div class="top-left">
+      <div class="title">POKER TRAINER</div>
+      <button id="mute-btn" class="mute-btn" onclick="toggleMute()" title="Toggle sounds" aria-label="Toggle sounds">&#128266;</button>
+    </div>
     <div class="stats">
       <div class="stat"><span class="val" id="score">0</span><span class="lbl">Correct</span></div>
       <div class="stat"><span class="val" id="streak">0</span><span class="lbl">Streak</span></div>
@@ -1319,6 +1346,76 @@ function renderHeroCard(card) {
 }
 
 // ============================================================
+// SOUND EFFECTS (Web Audio API - no external files)
+// ============================================================
+
+let _audioCtx = null;
+let _muted = false;
+
+function getAudioCtx() {
+  if (_audioCtx) return _audioCtx;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) _audioCtx = new AC();
+  } catch (e) { /* audio not supported */ }
+  return _audioCtx;
+}
+
+function playTone(freq, durationSec, startOffsetSec, type, volume) {
+  const ctx = getAudioCtx();
+  if (!ctx || _muted) return;
+  // Resume context if suspended (mobile autoplay policy)
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const t0 = ctx.currentTime + (startOffsetSec || 0);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  // Quick attack, smooth exponential decay
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(volume, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSec);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + durationSec + 0.02);
+}
+
+function playCorrect() {
+  // Perfect-fifth chime: C5 then G5 - bright and positive
+  playTone(523.25, 0.22, 0.00, 'sine', 0.14);
+  playTone(783.99, 0.34, 0.08, 'sine', 0.14);
+}
+
+function playWrong() {
+  // Soft low descending thunk - gentle, not harsh
+  playTone(220, 0.18, 0.00, 'triangle', 0.12);
+  playTone(165, 0.26, 0.06, 'triangle', 0.10);
+}
+
+function toggleMute() {
+  _muted = !_muted;
+  try { localStorage.setItem('pokerTrainerMuted', _muted ? '1' : '0'); } catch (e) {}
+  updateMuteButton();
+  // Play a quick "test" tone when unmuting so user gets feedback
+  if (!_muted) playTone(660, 0.10, 0, 'sine', 0.12);
+}
+
+function updateMuteButton() {
+  const btn = document.getElementById('mute-btn');
+  if (!btn) return;
+  // 🔊 = speaker, 🔇 = muted speaker
+  btn.innerHTML = _muted ? '&#128263;' : '&#128266;';
+  btn.classList.toggle('muted', _muted);
+}
+
+function loadMutePref() {
+  try { _muted = localStorage.getItem('pokerTrainerMuted') === '1'; } catch (e) {}
+  updateMuteButton();
+}
+
+// ============================================================
 // GAME STATE & FLOW
 // ============================================================
 
@@ -1382,8 +1479,10 @@ function handleAnswer(value) {
     state.score++;
     state.streak++;
     if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+    playCorrect();
   } else {
     state.streak = 0;
+    playWrong();
   }
 
   document.querySelectorAll('.action-btn').forEach(btn => {
@@ -1439,6 +1538,7 @@ function loadState() {
 
 // Init
 loadState();
+loadMutePref();
 updateStats();
 loadQuestion();
 
